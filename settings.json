@@ -1,3 +1,4 @@
 {
-    "showAsterisk": false
+    "showAsterisk": true,
+    "showJoinMessages": true
 }

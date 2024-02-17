@@ -11,3 +11,5 @@ Clears all saved IDs, either in the house the player is currently in, or in all 
 Links the ID \<id\> to the username \<name\>
 ### /toggleAsterisk
 Toggles the astersik that appears before all housing chat messages
+### /toggleJoinMessages
+Toggles the default messages that appear when a player joins or leaves a house

@@ -36,22 +36,9 @@ if(Server.getIP().includes("hypixel.net")) {
             break;
         }
         cancelMapMessage = true;
-        ChatLib.say("/map")
+        ChatLib.say("/map");
 
     }).setName("clearIDCache");
-
-    register("command", () => {
-
-        settings.showAsterisk = !settings.showAsterisk;
-
-        if(settings.showAsterisk) {
-            ChatLib.chat("&aHousing Asterisk Enabled!");
-        } else {
-            ChatLib.chat("&aHousing Asterisk Disabled!");
-        }
-
-
-    }).setName("toggleAsterisk");
 
     register("command", (...args) => {
 
@@ -67,7 +54,33 @@ if(Server.getIP().includes("hypixel.net")) {
             ChatLib.chat("&cInvalid usage! /setIDtoName <ID> <name>");
         }
 
-    }).setName("setIDtoName")
+    }).setName("setIDtoName");
+
+    register("command", () => {
+
+        settings.showAsterisk = !settings.showAsterisk;
+
+        if(settings.showAsterisk) {
+            ChatLib.chat("&aHousing Asterisk Enabled!");
+        } else {
+            ChatLib.chat("&aHousing Asterisk Disabled!");
+        }
+
+
+    }).setName("toggleAsterisk");
+
+    register("command", () => {
+
+        settings.showJoinMessages = !settings.showJoinMessages;
+
+        if(settings.showJoinMessages) {
+            ChatLib.chat("&aJoin Messages Enabled!");
+        } else {
+            ChatLib.chat("&aJoin Messages Disabled!");
+        }
+
+
+    }).setName("toggleJoinMessages");
 
     register("worldLoad", (() => {
 
@@ -81,7 +94,7 @@ if(Server.getIP().includes("hypixel.net")) {
             }, 1000);
         }
         
-    }))
+    }));
 
     register("tick", (() => {
 
@@ -90,7 +103,7 @@ if(Server.getIP().includes("hypixel.net")) {
     
         if(TabList.getNames().length !== lastLength) {
             let currentNames = TabList.getNames();
-            changedName = currentNames.filter(n => !lastNames.includes(n)).concat(lastNames.filter(n => !currentNames.includes(n)))
+            changedName = currentNames.filter(n => !lastNames.includes(n)).concat(lastNames.filter(n => !currentNames.includes(n)));
             if(changedName.length === 1) {
                 changedName = changedName[0].removeFormatting().split(' ');
                 if(changedName[0].includes('[')) changedName.shift();
@@ -132,76 +145,85 @@ if(Server.getIP().includes("hypixel.net")) {
     
     register("packetReceived", (packet, event) => {
         
-        if(packet.class.toString() === "class net.minecraft.class_7439" && packet.content() && !packet.overlay() && packet.content().getString().startsWith("*")) {
+        if(packet.class.toString() === "class net.minecraft.class_7439" && packet.content() && !packet.overlay()) {
 
-            let message = format(packet.content());
-
-            // console.log(message)
-            // ChatLib.chat(message)
-
-            let id = message.match(playerRegex);
-            if(id && (ticks - changedTick) < 20 && joinedHouse > 60) {
-                let checkChangedName = changedName;
-                setTimeout(() => {
-                    if(checkChangedName === changedName) {
-                        playerIDs[uuid][id[12].removeFormatting()] = changedName;
-                    }
-                }, 500)
-            }
-    
-            let oldMessage = message;
-            let lexedMessage = [];
-            let newMessage = "";
-            let IDReplaced = false;
-    
-            while(playerRegex.test(oldMessage)) {
-    
-                ((match) => {
-
-                    oldMessage = [oldMessage.substring(0, oldMessage.indexOf(match[0])), oldMessage.substring((oldMessage.indexOf(match[0]) + match[0].length))];
-    
-                    lexedMessage.push({type: "text", value: oldMessage.shift()});
-                    lexedMessage.push({type: "player", value: match[0]});
-    
-                    oldMessage = oldMessage[0];
-
-                })(oldMessage.match(playerRegex));       
-
-            }
-    
-            if(oldMessage) {
-    
-                lexedMessage.push({type: "text", value: oldMessage});
+            if(/^(\[(VIP|MVP\+?)\+?\] )?[a-zA-Z0-9_\-]{3,16} (entered|left) the world\.$/.test(packet.content().getString()) && !settings.showJoinMessages) {
+                cancel(event);
             }
 
-            // console.log(JSON.stringify(lexedMessage))
-    
-            for(let token of lexedMessage) {
+            if(packet.content().getString().startsWith("*")) {
 
-                if(token.type === "player" && playerRegex.test(token.value)) {
+                let message = format(packet.content());
 
-                    let match = token.value.match(playerRegex);
+                // console.log(message)
+                // ChatLib.chat(message)
 
-                    if(playerIDs[uuid][match[12].removeFormatting()]) {
-                        token.value = playerIDs[uuid][match[12].removeFormatting()];
-                        IDReplaced = true;
-                    }
+                let id = message.match(playerRegex);
+
+                if(id && (ticks - changedTick) < 20 && joinedHouse > 60) {
+                    let checkChangedName = changedName;
+                    setTimeout(() => {
+                        if(checkChangedName === changedName) {
+                            playerIDs[uuid][id[12].removeFormatting()] = changedName;
+                        }
+                    }, 500)
+                }
+        
+                let oldMessage = message;
+                let lexedMessage = [];
+                let newMessage = "";
+                let IDReplaced = false;
+        
+                while(playerRegex.test(oldMessage)) {
+        
+                    ((match) => {
+
+                        oldMessage = [oldMessage.substring(0, oldMessage.indexOf(match[0])), oldMessage.substring((oldMessage.indexOf(match[0]) + match[0].length))];
+        
+                        lexedMessage.push({type: "text", value: oldMessage.shift()});
+                        lexedMessage.push({type: "player", value: match[0]});
+        
+                        oldMessage = oldMessage[0];
+
+                    })(oldMessage.match(playerRegex));       
 
                 }
-                newMessage = newMessage + token.value;
-            }
+        
+                if(oldMessage) {
+        
+                    lexedMessage.push({type: "text", value: oldMessage});
+                }
 
-            if(!settings.showAsterisk && newMessage.startsWith("§7*")) {
-                newMessage = newMessage.substring(6);
-                IDReplaced = true;
-            }
-    
-            if(IDReplaced) {
-                cancel(event);
-                ChatLib.chat(newMessage);
-            }
+                // console.log(JSON.stringify(lexedMessage))
+        
+                for(let token of lexedMessage) {
+
+                    if(token.type === "player" && playerRegex.test(token.value)) {
+
+                        let match = token.value.match(playerRegex);
+
+                        if(playerIDs[uuid][match[12].removeFormatting()]) {
+                            token.value = playerIDs[uuid][match[12].removeFormatting()];
+                            IDReplaced = true;
+                        }
+
+                    }
+                    newMessage = newMessage + token.value;
+                }
+
+                if(!settings.showAsterisk && newMessage.startsWith("§7*")) {
+                    newMessage = newMessage.substring(6);
+                    IDReplaced = true;
+                }
+        
+                if(IDReplaced) {
+                    cancel(event);
+                    ChatLib.chat(newMessage);
+                }
+
+            } 
         }
-    })
+    });
 
     register("chat", (message, event) => {
 
