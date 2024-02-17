@@ -16,7 +16,7 @@ if(Server.getIP().includes("hypixel.net")) {
 
     register("command", (...arg) => {
 
-        if(arg.length !== 1) {
+        if(arg === undefined || arg.length !== 1) {
             arg = null;
         } else {
             arg = arg[0];
@@ -29,7 +29,7 @@ if(Server.getIP().includes("hypixel.net")) {
             break;
             case "house":
                 playerIDs[uuid] = {};
-                ChatLib.chat("&aCleared IDs in house \"" + uuid + "\"!");
+                ChatLib.chat("&aCleared IDs in house " + uuid + "!");
             break;
             default:
                 ChatLib.chat("&cInvalid usage! /clearIDCache <all | house>");
@@ -37,6 +37,9 @@ if(Server.getIP().includes("hypixel.net")) {
         }
         cancelMapMessage = true;
         ChatLib.say("/map");
+        setTimeout(() => {
+            cancelMapMessage = false;
+        }, 1000);
 
     }).setName("clearIDCache");
 
@@ -45,16 +48,38 @@ if(Server.getIP().includes("hypixel.net")) {
         if(args.length === 2) {
             let ID = parseInt(args[0]).toString()
             if(ID !== "NaN" && (+args[0]).toString() !== "NaN") {
-                playerIDs[uuid][ID.toLocaleString("en-US")] = args[1];
-                ChatLib.chat(`&aSet Player #${ID.toLocaleString("en-US")} to name "${args[1]}"!`);
+                if(playerIDs[uuid][ID]) {
+                    ChatLib.chat(`&aSet ID #${ID} to name "${args[1]}" (Formerly ${playerIDs[uuid][ID]})!`);
+                } else {
+                    ChatLib.chat(`&aSet ID #${ID} to name "${args[1]}"!`);
+                }
+                playerIDs[uuid][ID] = args[1];
             } else {
-                ChatLib.chat("&cInvalid usage! ID should be an integer, none found!");
+                ChatLib.chat("&cInvalid usage! id should be an integer, none found!");
             }
         } else {
-            ChatLib.chat("&cInvalid usage! /setIDtoName <ID> <name>");
+            ChatLib.chat("&cInvalid usage! /setIDtoName <id> <name>");
         }
 
     }).setName("setIDtoName");
+
+    register("command", (...arg) => {
+        if(arg.length != 1) {
+            ChatLib.chat("&cInvalid usage! /resetID <id>");
+        } else {
+            let ID = parseInt(arg[0]).toString()
+            if(ID !== "NaN" && (+arg[0]).toString() !== "NaN") {
+                if(playerIDs[uuid][ID]) {
+                    ChatLib.chat(`&aReset ID #${ID} (Formerly ${playerIDs[uuid][ID]})!`);
+                } else {
+                    ChatLib.chat(`&aReset ID #${ID}!`);
+                }
+                delete playerIDs[uuid][ID];
+            } else {
+                ChatLib.chat("&cInvalid usage! id should be an integer, none found!");
+            }
+        }
+    }).setName("resetID");
 
     register("command", () => {
 
@@ -69,16 +94,43 @@ if(Server.getIP().includes("hypixel.net")) {
 
     }).setName("toggleAsterisk");
 
-    register("command", () => {
+    register("command", (...arg) => {
 
-        settings.showJoinMessages = !settings.showJoinMessages;
-
-        if(settings.showJoinMessages) {
-            ChatLib.chat("&aJoin Messages Enabled!");
+        if(arg === undefined || arg.length !== 1) {
+            arg = null;
         } else {
-            ChatLib.chat("&aJoin Messages Disabled!");
+            arg = arg[0];
         }
 
+        switch(arg) {
+            case "all":
+                settings.showJoinMessages = !settings.showJoinMessages;
+
+                if(settings.showJoinMessages) {
+                    ChatLib.chat("&aJoin Messages Enabled in All Houses! (Except houses manually set)");
+                } else {
+                    ChatLib.chat("&aJoin Messages Disabled in All Houses! (Except houses manually set)");
+                }
+            break;
+            case "house":
+            
+                if(Object.keys(settings.manualShowJoinMessages).includes(uuid)) {
+                    settings.manualShowJoinMessages[uuid] = !settings.manualShowJoinMessages[uuid];
+                } else {
+                    settings.manualShowJoinMessages[uuid] = !settings.showJoinMessages;
+                }
+
+                if(settings.manualShowJoinMessages[uuid] === true) {
+                    ChatLib.chat(`&aJoin Messages Enabled in House ${uuid}!`);
+                } else {
+                    ChatLib.chat(`&aJoin Messages Disabled in House ${uuid}!`);
+                }
+            
+            break;
+            default:
+                ChatLib.chat("&cInvalid usage! /toggleJoinMessages <all | house>");
+            break;
+        }
 
     }).setName("toggleJoinMessages");
 
@@ -147,8 +199,14 @@ if(Server.getIP().includes("hypixel.net")) {
         
         if(packet.class.toString() === "class net.minecraft.class_7439" && packet.content() && !packet.overlay()) {
 
-            if(/^(\[(VIP|MVP\+?)\+?\] )?[a-zA-Z0-9_\-]{3,16} (entered|left) the world\.$/.test(packet.content().getString()) && !settings.showJoinMessages) {
-                cancel(event);
+            if(/^(\[(VIP|MVP\+?)\+?\] )?[a-zA-Z0-9_\-]{3,16} (entered|left) the world\.$/.test(packet.content().getString())) {
+                if(Object.keys(settings.manualShowJoinMessages).includes(uuid)) {
+                    if(settings.manualShowJoinMessages[uuid] === false) {
+                        cancel(event);
+                    }
+                } else if(!settings.showJoinMessages) {
+                    cancel(event);
+                }
             }
 
             if(packet.content().getString().startsWith("*")) {
@@ -164,7 +222,7 @@ if(Server.getIP().includes("hypixel.net")) {
                     let checkChangedName = changedName;
                     setTimeout(() => {
                         if(checkChangedName === changedName) {
-                            playerIDs[uuid][id[12].removeFormatting()] = changedName;
+                            playerIDs[uuid][id[12].removeFormatting().replaceAll(',', '')] = changedName;
                         }
                     }, 500)
                 }
@@ -202,8 +260,8 @@ if(Server.getIP().includes("hypixel.net")) {
 
                         let match = token.value.match(playerRegex);
 
-                        if(playerIDs[uuid][match[12].removeFormatting()]) {
-                            token.value = playerIDs[uuid][match[12].removeFormatting()];
+                        if(playerIDs[uuid][match[12].removeFormatting().replaceAll(',', '')]) {
+                            token.value = playerIDs[uuid][match[12].removeFormatting().replaceAll(',', '')];
                             IDReplaced = true;
                         }
 
@@ -230,10 +288,8 @@ if(Server.getIP().includes("hypixel.net")) {
         if(cancelMapMessage) {
             if(message.includes("Unknown command.")) {
                 cancel(event);
-                cancelMapMessage = false;
             } else if(message.includes("You are currently playing on")) {
                 cancel(event);
-                cancelMapMessage = false;
                 uuid = message.split(' ')[5].removeFormatting();
                 if(!Object.keys(playerIDs).includes(uuid)) playerIDs[uuid] = {};
             }
