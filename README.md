@@ -11,6 +11,10 @@ Clears all saved IDs, either in the house the player is currently in, or in all 
 Links the ID \<id\> to the username \<name\>
 ### /resetID \<id\>
 Resets the value of the ID \<id\>
+### /getNameFromID \<id\>
+Gets the name associated with the ID \<id\> 
+### /getIDFromName \<name\>
+Gets the ID associated with the name \<name\> 
 ### /toggleAsterisk
 Toggles the astersik that appears before all housing chat messages
 ### /toggleJoinMessages <all | house>

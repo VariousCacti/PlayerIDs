@@ -46,10 +46,10 @@ if(Server.getIP().includes("hypixel.net")) {
     register("command", (...args) => {
 
         if(args.length === 2) {
-            let ID = parseInt(args[0]).toString()
+            let ID = parseInt(args[0]).toString();
             if(ID !== "NaN" && (+args[0]).toString() !== "NaN") {
                 if(playerIDs[uuid][ID]) {
-                    ChatLib.chat(`&aSet ID #${ID} to name "${args[1]}" (Formerly ${playerIDs[uuid][ID]})!`);
+                    ChatLib.chat(`&aSet ID #${ID} to name "${args[1]}" (Formerly "${playerIDs[uuid][ID]}")!`);
                 } else {
                     ChatLib.chat(`&aSet ID #${ID} to name "${args[1]}"!`);
                 }
@@ -64,13 +64,13 @@ if(Server.getIP().includes("hypixel.net")) {
     }).setName("setIDtoName");
 
     register("command", (...arg) => {
-        if(arg.length != 1) {
+        if(!arg[0] || arg.length !== 1) {
             ChatLib.chat("&cInvalid usage! /resetID <id>");
         } else {
-            let ID = parseInt(arg[0]).toString()
+            let ID = parseInt(arg[0]).toString();
             if(ID !== "NaN" && (+arg[0]).toString() !== "NaN") {
                 if(playerIDs[uuid][ID]) {
-                    ChatLib.chat(`&aReset ID #${ID} (Formerly ${playerIDs[uuid][ID]})!`);
+                    ChatLib.chat(`&aReset ID #${ID} (Formerly "${playerIDs[uuid][ID]}")!`);
                 } else {
                     ChatLib.chat(`&aReset ID #${ID}!`);
                 }
@@ -80,6 +80,42 @@ if(Server.getIP().includes("hypixel.net")) {
             }
         }
     }).setName("resetID");
+
+    register("command", (...arg) => {
+        if(!arg[0] || arg.length != 1) {
+            ChatLib.chat("&cInvalid usage! /getNameFromID <id>");
+        } else {
+            let ID = parseInt(arg[0]).toString();
+            if(ID !== "NaN" && (+arg[0]).toString() !== "NaN") {
+                if(playerIDs[uuid][ID]) {
+                    ChatLib.chat(`&aPlayer #${ID} is "${playerIDs[uuid][ID]}"!`);
+                } else {
+                    ChatLib.chat(`&eNo player found with the ID #${ID}!`);
+                }
+            } else {
+                ChatLib.chat("&cInvalid usage! id should be an integer, none found!");
+            }
+        }
+    }).setName("getNameFromID");
+
+    register("command", (...arg) => {
+        console.log(arg[0]);
+        if(!arg[0] || arg.length != 1) {
+            ChatLib.chat("&cInvalid usage! /getIDFromName <name>");
+        } else {
+            let foundID = false;
+            for(let ID in playerIDs[uuid]) {
+                if(playerIDs[uuid][ID].toLowerCase() === arg[0].toLowerCase()) {
+                    ChatLib.chat(`&aThe ID of the player "${playerIDs[uuid][ID]}" is #${ID}!`);
+                    foundID = true;
+                    break;
+                }
+            }
+            if(!foundID) {
+                ChatLib.chat(`&eNo ID found for the player "${arg[0]}"!`);
+            }
+        }
+    }).setName("getIDFromName");
 
     register("command", () => {
 
