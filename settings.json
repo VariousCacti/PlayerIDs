@@ -1,5 +1,6 @@
 {
     "showAsterisk": true,
     "showJoinMessages": true,
-    "manualShowJoinMessages": {}
+    "manualShowJoinMessages": {},
+    "customIDMessages": {}
 }

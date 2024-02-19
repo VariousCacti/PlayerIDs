@@ -15,6 +15,9 @@ Resets the value of the ID \<id\>
 Gets the name associated with the ID \<id\> 
 ### /getIDFromName \<name\>
 Gets the ID associated with the name \<name\> 
+### /customIDMessages \<add | remove | list\> \<ID message\>
+Add custom triggers for player IDs, not case-sensitive, independent to each house. (Ex: add "gamer" to detect "Gamer#100" as Player #100)
+This command supports regex, but it is through the Rhino JS Engine so it may be glitchy!
 ### /toggleAsterisk
 Toggles the astersik that appears before all housing chat messages
 ### /toggleJoinMessages <all | house>
