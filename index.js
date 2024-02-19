@@ -9,6 +9,9 @@ if(Server.getIP().includes("hypixel.net")) {
     let cancelMapMessage = false;
     let uuid;
     let joinedHouse = 0;
+    let joinMessages = [];
+    let nameStack = [];
+    let messageStack = [];
 
     let playerIDs = JSON.parse(FileLib.read("./config/ChatTriggers/modules/playerIDs/playerIDs.json"));
     let settings = JSON.parse(FileLib.read("./config/ChatTriggers/modules/playerIDs/settings.json"));
@@ -189,27 +192,30 @@ if(Server.getIP().includes("hypixel.net")) {
 
         switch(arg) {
             case "all":
-                settings.showJoinMessages = !settings.showJoinMessages;
-
-                if(settings.showJoinMessages) {
-                    ChatLib.chat("&aJoin Messages Enabled in All Houses! (Except houses manually set)");
+                if(settings.showJoinMessages === "always") {
+                    settings.showJoinMessages = "never";
+                } else if(settings.showJoinMessages === "never") {
+                    settings.showJoinMessages = "detect";
                 } else {
-                    ChatLib.chat("&aJoin Messages Disabled in All Houses! (Except houses manually set)");
+                    settings.showJoinMessages = "always";
                 }
+                ChatLib.chat(`&aJoin messages set to ${settings.showJoinMessages} in all houses!`);
             break;
             case "house":
             
                 if(Object.keys(settings.manualShowJoinMessages).includes(uuid)) {
-                    settings.manualShowJoinMessages[uuid] = !settings.manualShowJoinMessages[uuid];
-                } else {
-                    settings.manualShowJoinMessages[uuid] = !settings.showJoinMessages;
+                    settings.manualShowJoinMessages[uuid] = settings.manualShowJoinMessages[uuid];
                 }
 
-                if(settings.manualShowJoinMessages[uuid] === true) {
-                    ChatLib.chat(`&aJoin Messages Enabled in House ${uuid}!`);
+                if(settings.manualShowJoinMessages[uuid] === "always") {
+                    settings.manualShowJoinMessages[uuid] = "never";
+                } else if(settings.manualShowJoinMessages[uuid] === "never") {
+                    settings.manualShowJoinMessages[uuid] = "detect";
                 } else {
-                    ChatLib.chat(`&aJoin Messages Disabled in House ${uuid}!`);
+                    settings.manualShowJoinMessages[uuid] = "always";
                 }
+
+                ChatLib.chat(`&aJoin messages set to ${settings.manualShowJoinMessages[uuid]} in this house!`);
             
             break;
             default:
@@ -241,6 +247,10 @@ if(Server.getIP().includes("hypixel.net")) {
         if(TabList.getNames().length !== lastLength && joinedHouse > 20) {
             let currentNames = TabList.getNames();
             changedName = currentNames.filter(n => !lastNames.includes(n)).concat(lastNames.filter(n => !currentNames.includes(n)));
+            if(ticks - changedTick < 20) {
+                changedName = [];
+                changedTick = 0;
+            }
             if(changedName.length === 1) {
                 changedName = changedName[0].removeFormatting().split(' ');
                 if(changedName[0].includes('[')) changedName.shift();
@@ -251,7 +261,8 @@ if(Server.getIP().includes("hypixel.net")) {
     
         lastNames = TabList.getNames();
         lastLength = lastNames.length;
-    }))
+
+    }));
 
     function format(raw) {
 
@@ -314,6 +325,7 @@ if(Server.getIP().includes("hypixel.net")) {
 
                     if(playerIDs[uuid][match.removeFormatting().replaceAll(',', '')]) {
                         token.value = playerIDs[uuid][match.removeFormatting().replaceAll(',', '')];
+                        joinMessages.push(token.value);
                     } else {
                         IDReplaced = false;
                     }
@@ -332,10 +344,8 @@ if(Server.getIP().includes("hypixel.net")) {
         if((forced || (ticks - changedTick) > 20 || IDReplaced) && (joinedHouse > 20 || !testPlayerRegex(message))) {
             ChatLib.chat(newMessage);
         } else {
-            let messageStack = [];
             messageStack.push(newMessage);
             setTimeout(() => {
-                console.log(messageStack[0] + "a")
                 replaceIDsInMessage(messageStack.shift(), true);
             }, ((20 - Math.min((ticks - changedTick), 0)) * 50));
         }
@@ -353,12 +363,29 @@ if(Server.getIP().includes("hypixel.net")) {
             }
 
             if(/^(\[(VIP|MVP\+?)\+?\] )?[a-zA-Z0-9_\-]{3,16} (entered|left) the world\.$/.test(packet.content().getString())) {
+                let name = packet.content().getString().match(/([a-zA-Z0-9_\-]{3,16}) (entered|left) the world\.$/)[1];
                 if(Object.keys(settings.manualShowJoinMessages).includes(uuid)) {
-                    if(settings.manualShowJoinMessages[uuid] === false) {
+                    if(settings.manualShowJoinMessages[uuid] === "never") {
                         cancel(event);
+                    } else if(settings.manualShowJoinMessages[uuid] === "detect") {
+                        cancel(event);
+                        joinMessages = joinMessages.filter((item) => { item !== name; });
+                        nameStack.push([name, format(packet.content())]);
+                        setTimeout(() => {
+                            let currentName = nameStack.shift();
+                            if(!joinMessages.includes(currentName[0])) ChatLib.chat(currentName[1]);
+                        }, 2000);
                     }
-                } else if(!settings.showJoinMessages) {
+                } else if(settings.showJoinMessages === "never") {
                     cancel(event);
+                } else if(settings.showJoinMessages === "detect") {
+                    cancel(event);
+                    joinMessages = joinMessages.filter((item) => { item !== name; });
+                    nameStack.push([name, format(packet.content())]);
+                    setTimeout(() => {
+                        let currentName = nameStack.shift();
+                        if(!joinMessages.includes(currentName[0])) ChatLib.chat(currentName[1]);
+                    }, 2000);
                 }
             }
 

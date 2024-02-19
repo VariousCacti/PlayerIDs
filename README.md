@@ -21,4 +21,7 @@ This command supports regex, but it is through the Rhino JS Engine so it may be 
 ### /toggleAsterisk
 Toggles the astersik that appears before all housing chat messages
 ### /toggleJoinMessages <all | house>
-Toggles the default messages that appear when a player joins or leaves a house
+Changes the default housing join and leave messages
+- Always - Always shows join and leave messages
+- Never - Never shows join and leave messages
+- Detect - Shows join and leave messages if no custom one is sent by the house
