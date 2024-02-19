@@ -8,6 +8,7 @@ if(Server.getIP().includes("hypixel.net")) {
     let changedName;
     let cancelMapMessage = false;
     let uuid;
+    let uuidUpdated = false;
     let joinedHouse = 0;
     let joinMessages = [];
     let nameStack = [];
@@ -228,6 +229,7 @@ if(Server.getIP().includes("hypixel.net")) {
     register("worldLoad", (() => {
 
         joinedHouse = 0;
+        uuidUpdated = false;
 
         if(!cancelMapMessage) {
             cancelMapMessage = true;
@@ -341,7 +343,7 @@ if(Server.getIP().includes("hypixel.net")) {
             newMessage = newMessage.substring(6);
         }
 
-        if((forced || (ticks - changedTick) > 20 || IDReplaced) && (joinedHouse > 20 || !testPlayerRegex(message))) {
+        if(((forced || (ticks - changedTick) > 20 || IDReplaced) && joinedHouse > 20) || (uuidUpdated && !(testPlayerRegex(message)))) {
             ChatLib.chat(newMessage);
         } else {
             messageStack.push(newMessage);
@@ -355,7 +357,22 @@ if(Server.getIP().includes("hypixel.net")) {
         
         if(packet.class.toString() === "class net.minecraft.class_7439" && packet.content() && !packet.overlay()) {
 
-            if(packet.content().getString().startsWith("Sending you to")) joinedHouse = 0;
+            if(cancelMapMessage) {
+                if(packet.content().getString().includes("Unknown command.")) {
+                    cancel(event);
+                } else if(packet.content().getString().includes("You are currently playing on")) {
+                    cancel(event);
+                    uuidUpdated = true;
+                    uuid = packet.content().getString().split(' ')[5].removeFormatting();
+                    if(!Object.keys(playerIDs).includes(uuid)) playerIDs[uuid] = {};
+                    if(!settings.customIDMessages[uuid]) settings.customIDMessages[uuid] = [];
+                }
+            }
+
+            if(packet.content().getString().startsWith("Sending you to")) {
+                joinedHouse = 0;
+                uuidUpdated = false;
+            }
 
             if(packet.content().getString().replace(/\s/g, "").length === 0 && joinedHouse < 20) {
                 cancel(event);
@@ -415,21 +432,6 @@ if(Server.getIP().includes("hypixel.net")) {
             } 
         }
     });
-
-    register("chat", (message, event) => {
-
-        if(cancelMapMessage) {
-            if(message.includes("Unknown command.")) {
-                cancel(event);
-            } else if(message.includes("You are currently playing on")) {
-                cancel(event);
-                uuid = message.split(' ')[5].removeFormatting();
-                if(!Object.keys(playerIDs).includes(uuid)) playerIDs[uuid] = {};
-                if(!settings.customIDMessages[uuid]) settings.customIDMessages[uuid] = [];
-            }
-        };
-
-    }).setChatCriteria("${message}");
  
     register("gameUnload", () => {
         FileLib.write("./config/ChatTriggers/modules/playerIDs/playerIDs.json", JSON.stringify(playerIDs, null, 4));
@@ -438,6 +440,6 @@ if(Server.getIP().includes("hypixel.net")) {
 
     register("messageSent", (message) => {
         if(message.startsWith("/visibility")) ChatLib.chat("&cWarning! PlayerIDs does not work with visibily settings other than unlimited!");
-    })
+    });
 
 }
